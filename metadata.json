@@ -1,0 +1,6 @@
+{
+  "name": "Chronos",
+  "description": "Chronos - A calm, monastic timeline and task scheduler with calendar and settings, built with Clean Architecture, MVVM, and Room Database.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
