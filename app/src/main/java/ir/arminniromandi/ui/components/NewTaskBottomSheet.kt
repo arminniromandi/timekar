@@ -12,13 +12,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -27,12 +24,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
@@ -51,11 +46,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -82,9 +77,15 @@ import com.example.domain.model.SubtaskItem
 import com.example.domain.model.TaskItem
 import com.example.ui.strings.AppStrings
 import com.example.util.DateHelper
+import ir.arminniromandi.ui.components.TimePickerDialog
+import java.util.Calendar
 
 private enum class ActivePicker {
     NONE, DATE, TIME, PRIORITY, CATEGORY
+}
+
+private enum class TimePickerTarget {
+    START, END
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,27 +96,73 @@ fun NewTaskBottomSheet(
     onDismiss: () -> Unit,
     onSaveTask: (TaskItem) -> Unit
 ) {
+    val currentTime = Calendar.getInstance()
+    val nowTime = currentTime.get(Calendar.HOUR_OF_DAY)
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val todayEpoch = remember { DateHelper.todayEpochDay() }
+
+    // محاسبه دقیق روزهای پایان هفته و هفته بعد بر اساس زبان و تقویم
+    val (weekendEpoch, nextWeekEpoch) = remember(todayEpoch, strings.isPersian) {
+        val cal = Calendar.getInstance()
+        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK) // 1 = Sunday, 6 = Friday, 7 = Saturday
+
+        val daysUntilWeekend = if (strings.isPersian) {
+            // پایان هفته برای تقویم شمسی (جمعه)
+            val diff = Calendar.FRIDAY - dayOfWeek
+            if (diff <= 0) diff + 7 else diff
+        } else {
+            // پایان هفته برای تقویم میلادی (یکشنبه)
+            val diff = Calendar.SUNDAY - dayOfWeek
+            if (diff <= 0) diff + 7 else diff
+        }
+
+        val daysUntilNextWeek = if (strings.isPersian) {
+            // شنبه اول هفته آینده
+            val diff = (Calendar.SATURDAY - dayOfWeek + 7) % 7
+            if (diff == 0) 7 else diff
+        } else {
+            // دوشنبه اول هفته آینده میلادی
+            val diff = (Calendar.MONDAY - dayOfWeek + 7) % 7
+            if (diff == 0) 7 else diff
+        }
+
+        Pair(todayEpoch + daysUntilWeekend, todayEpoch + daysUntilNextWeek)
+    }
 
     var title by remember { mutableStateOf(initialTask?.title ?: "") }
     var description by remember { mutableStateOf(initialTask?.description ?: "") }
     var selectedEpochDay by remember { mutableLongStateOf(initialTask?.dateEpochDay ?: todayEpoch) }
-    var startMinute by remember { mutableIntStateOf(initialTask?.startTimeMinute ?: (14 * 60)) }
-    var endMinute by remember { mutableIntStateOf(initialTask?.endTimeMinute ?: (15 * 60)) }
+    var startMinute by remember {
+        mutableIntStateOf(
+            initialTask?.startTimeMinute ?: (nowTime * 60)
+        )
+    }
+    var endMinute by remember {
+        mutableIntStateOf(
+            initialTask?.endTimeMinute ?: ((nowTime + 1) * 60)
+        )
+    }
     var isAllDay by remember { mutableStateOf(initialTask?.isAllDay ?: false) }
     var priority by remember { mutableStateOf(initialTask?.priority ?: Priority.HIGH) }
     var category by remember { mutableStateOf(initialTask?.category ?: Category.PRODUCT_CORE) }
-    var reminderText by remember { mutableStateOf(initialTask?.reminderText ?: if (strings.isPersian) "۱۰ دقیقه قبل از طریق بنر سیستم" else "10 minutes prior via system banner") }
-    var recurrenceText by remember { mutableStateOf(initialTask?.recurrenceText ?: if (strings.isPersian) "هفتگی در روزهای پنج‌شنبه" else "Weekly on Thursday") }
+    var reminderText by remember {
+        mutableStateOf(
+            initialTask?.reminderText
+                ?: if (strings.isPersian) "۱۰ دقیقه قبل از طریق بنر سیستم" else "10 minutes prior via system banner"
+        )
+    }
+    var recurrenceText by remember {
+        mutableStateOf(
+            initialTask?.recurrenceText
+                ?: if (strings.isPersian) "هفتگی در روزهای پنج‌شنبه" else "Weekly on Thursday"
+        )
+    }
 
     val subtasks = remember {
         mutableStateListOf<SubtaskItem>().apply {
             if (initialTask != null && initialTask.subtasks.isNotEmpty()) {
                 addAll(initialTask.subtasks)
-            } else {
-                add(SubtaskItem(title = if (strings.isPersian) "جمع‌آوری معیارهای اولیه توان عملیاتی" else "Gather preliminary throughput metrics", isCompleted = true))
-                add(SubtaskItem(title = if (strings.isPersian) "نهایی‌سازی RFC معماری دیتابیس" else "Finalize architectural schema RFC", isCompleted = false))
             }
         }
     }
@@ -124,6 +171,40 @@ fun NewTaskBottomSheet(
     var isAddingSubtask by remember { mutableStateOf(false) }
 
     var activePicker by remember { mutableStateOf(ActivePicker.NONE) }
+
+    var timePickerTarget by remember {
+        mutableStateOf<TimePickerTarget?>(null)
+    }
+
+    var timePickerState by remember {
+        mutableStateOf<TimePickerState?>(null)
+    }
+
+    if (timePickerTarget != null) {
+        TimePickerDialog(
+            onDismiss = {
+                timePickerTarget = null
+                timePickerState = null
+            },
+            onConfirm = {
+                when (timePickerTarget) {
+                    TimePickerTarget.START -> {
+                        startMinute = it
+                    }
+
+                    TimePickerTarget.END -> {
+                        endMinute = it
+                    }
+
+                    null -> Unit
+                }
+
+                timePickerTarget = null
+                timePickerState = null
+            },
+            timePickerState = timePickerState!!
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -284,17 +365,25 @@ fun NewTaskBottomSheet(
                 ) {
                     // Date Chip
                     item {
-                        val dateLabel = when (selectedEpochDay) {
-                            todayEpoch -> if (strings.isPersian) "امروز، ۳ آبان" else "Today, Oct 24"
-                            todayEpoch + 1 -> if (strings.isPersian) "فردا، ۴ آبان" else "Tomorrow, Oct 25"
-                            else -> if (strings.isPersian) DateHelper.formatPersianHeaderDate(selectedEpochDay) else DateHelper.formatEnglishHeaderDate(selectedEpochDay)
+                        val formattedDate = if (strings.isPersian) {
+                            DateHelper.formatPersianHeaderDate(selectedEpochDay)
+                        } else {
+                            DateHelper.formatEnglishHeaderDate(selectedEpochDay)
                         }
+
+                        val dateLabel = when (selectedEpochDay) {
+                            todayEpoch -> "${strings.presetToday}، $formattedDate"
+                            todayEpoch + 1 -> "${strings.presetTomorrow}، $formattedDate"
+                            else -> formattedDate
+                        }
+
                         AttributeChip(
                             icon = Icons.Default.CalendarToday,
                             label = dateLabel,
                             isActive = activePicker == ActivePicker.DATE,
                             onClick = {
-                                activePicker = if (activePicker == ActivePicker.DATE) ActivePicker.NONE else ActivePicker.DATE
+                                activePicker =
+                                    if (activePicker == ActivePicker.DATE) ActivePicker.NONE else ActivePicker.DATE
                             },
                             testTag = "chip_date"
                         )
@@ -310,7 +399,15 @@ fun NewTaskBottomSheet(
                             val endH = String.format("%02d", endMinute / 60)
                             val endM = String.format("%02d", endMinute % 60)
                             if (strings.isPersian) {
-                                "${DateHelper.formatPersianNumber(startH.toInt())}:${DateHelper.formatPersianNumber(startM.toInt())} – ${DateHelper.formatPersianNumber(endH.toInt())}:${DateHelper.formatPersianNumber(endM.toInt())}"
+                                "${DateHelper.formatPersianNumber(startH.toInt())}:${
+                                    DateHelper.formatPersianNumber(
+                                        startM.toInt()
+                                    )
+                                } – ${DateHelper.formatPersianNumber(endH.toInt())}:${
+                                    DateHelper.formatPersianNumber(
+                                        endM.toInt()
+                                    )
+                                }"
                             } else {
                                 "$startH:$startM – $endH:$endM"
                             }
@@ -320,7 +417,8 @@ fun NewTaskBottomSheet(
                             label = timeLabel,
                             isActive = activePicker == ActivePicker.TIME,
                             onClick = {
-                                activePicker = if (activePicker == ActivePicker.TIME) ActivePicker.NONE else ActivePicker.TIME
+                                activePicker =
+                                    if (activePicker == ActivePicker.TIME) ActivePicker.NONE else ActivePicker.TIME
                             },
                             testTag = "chip_time"
                         )
@@ -337,19 +435,25 @@ fun NewTaskBottomSheet(
                         }
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (activePicker == ActivePicker.PRIORITY) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerLow,
+                            color = if (activePicker == ActivePicker.PRIORITY) MaterialTheme.colorScheme.primaryContainer.copy(
+                                alpha = 0.2f
+                            ) else MaterialTheme.colorScheme.surfaceContainerLow,
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
                                 if (activePicker == ActivePicker.PRIORITY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
                             ),
                             modifier = Modifier
                                 .clickable {
-                                    activePicker = if (activePicker == ActivePicker.PRIORITY) ActivePicker.NONE else ActivePicker.PRIORITY
+                                    activePicker =
+                                        if (activePicker == ActivePicker.PRIORITY) ActivePicker.NONE else ActivePicker.PRIORITY
                                 }
                                 .testTag("chip_priority")
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(
+                                    horizontal = 10.dp,
+                                    vertical = 6.dp
+                                ),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
@@ -377,22 +481,29 @@ fun NewTaskBottomSheet(
 
                     // Category Chip
                     item {
-                        val categoryLabel = if (strings.isPersian) category.persianLabel else category.englishLabel
+                        val categoryLabel =
+                            if (strings.isPersian) category.persianLabel else category.englishLabel
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (activePicker == ActivePicker.CATEGORY) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerLow,
+                            color = if (activePicker == ActivePicker.CATEGORY) MaterialTheme.colorScheme.primaryContainer.copy(
+                                alpha = 0.2f
+                            ) else MaterialTheme.colorScheme.surfaceContainerLow,
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
                                 if (activePicker == ActivePicker.CATEGORY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
                             ),
                             modifier = Modifier
                                 .clickable {
-                                    activePicker = if (activePicker == ActivePicker.CATEGORY) ActivePicker.NONE else ActivePicker.CATEGORY
+                                    activePicker =
+                                        if (activePicker == ActivePicker.CATEGORY) ActivePicker.NONE else ActivePicker.CATEGORY
                                 }
                                 .testTag("chip_category")
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(
+                                    horizontal = 10.dp,
+                                    vertical = 6.dp
+                                ),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
@@ -430,10 +541,16 @@ fun NewTaskBottomSheet(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -457,7 +574,7 @@ fun NewTaskBottomSheet(
                                 }
                             }
 
-                            // 4 Date Presets
+                            // 4 Date Presets محاسبه‌شده و دقیق
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -478,17 +595,17 @@ fun NewTaskBottomSheet(
                                 }
                                 DatePresetButton(
                                     title = strings.presetWeekend,
-                                    isSelected = selectedEpochDay == todayEpoch + 2,
+                                    isSelected = selectedEpochDay == weekendEpoch,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    selectedEpochDay = todayEpoch + 2
+                                    selectedEpochDay = weekendEpoch
                                 }
                                 DatePresetButton(
                                     title = strings.presetNextWeek,
-                                    isSelected = selectedEpochDay == todayEpoch + 4,
+                                    isSelected = selectedEpochDay == nextWeekEpoch,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    selectedEpochDay = todayEpoch + 4
+                                    selectedEpochDay = nextWeekEpoch
                                 }
                             }
                         }
@@ -504,10 +621,16 @@ fun NewTaskBottomSheet(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -562,13 +685,31 @@ fun NewTaskBottomSheet(
                                         label = strings.startTime,
                                         minute = startMinute,
                                         isPersian = strings.isPersian,
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                timePickerTarget = TimePickerTarget.START
+                                                timePickerState = TimePickerState(
+                                                    initialHour = startMinute / 60,
+                                                    initialMinute = startMinute % 60,
+                                                    is24Hour = true
+                                                )
+                                            }
                                     )
                                     TimeDisplayBox(
                                         label = strings.endTime,
                                         minute = endMinute,
                                         isPersian = strings.isPersian,
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                timePickerTarget = TimePickerTarget.END
+                                                timePickerState = TimePickerState(
+                                                    initialHour = endMinute / 60,
+                                                    initialMinute = endMinute % 60,
+                                                    is24Hour = true
+                                                )
+                                            }
                                     )
                                 }
 
@@ -583,16 +724,32 @@ fun NewTaskBottomSheet(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        DurationChip(title = if (strings.isPersian) "۱۵ د" else "15m", isSelected = (endMinute - startMinute) == 15, modifier = Modifier.weight(1f)) {
+                                        DurationChip(
+                                            title = if (strings.isPersian) "۱۵ د" else "15m",
+                                            isSelected = (endMinute - startMinute) == 15,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
                                             endMinute = startMinute + 15
                                         }
-                                        DurationChip(title = if (strings.isPersian) "۳۰ د" else "30m", isSelected = (endMinute - startMinute) == 30, modifier = Modifier.weight(1f)) {
+                                        DurationChip(
+                                            title = if (strings.isPersian) "۳۰ د" else "30m",
+                                            isSelected = (endMinute - startMinute) == 30,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
                                             endMinute = startMinute + 30
                                         }
-                                        DurationChip(title = if (strings.isPersian) "۴۵ د" else "45m", isSelected = (endMinute - startMinute) == 45, modifier = Modifier.weight(1f)) {
+                                        DurationChip(
+                                            title = if (strings.isPersian) "۴۵ د" else "45m",
+                                            isSelected = (endMinute - startMinute) == 45,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
                                             endMinute = startMinute + 45
                                         }
-                                        DurationChip(title = if (strings.isPersian) "۱ س" else "1h", isSelected = (endMinute - startMinute) == 60, modifier = Modifier.weight(1f)) {
+                                        DurationChip(
+                                            title = if (strings.isPersian) "۱ س" else "1h",
+                                            isSelected = (endMinute - startMinute) == 60,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
                                             endMinute = startMinute + 60
                                         }
                                     }
@@ -611,10 +768,16 @@ fun NewTaskBottomSheet(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -702,10 +865,16 @@ fun NewTaskBottomSheet(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Text(
                                 text = if (strings.isPersian) "انتخاب دسته‌بندی" else "Select Category",
                                 style = MaterialTheme.typography.labelMedium,
@@ -731,7 +900,10 @@ fun NewTaskBottomSheet(
                                             fontSize = 12.sp,
                                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                                             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                            modifier = Modifier.padding(
+                                                horizontal = 10.dp,
+                                                vertical = 6.dp
+                                            )
                                         )
                                     }
                                 }
@@ -875,7 +1047,11 @@ fun NewTaskBottomSheet(
                 // 3. Subtasks Checklist
                 val completedSubtasks = subtasks.count { it.isCompleted }
                 val subtaskCountStr = if (strings.isPersian) {
-                    " (${DateHelper.formatPersianNumber(completedSubtasks)}/${DateHelper.formatPersianNumber(subtasks.size)})"
+                    " (${DateHelper.formatPersianNumber(completedSubtasks)}/${
+                        DateHelper.formatPersianNumber(
+                            subtasks.size
+                        )
+                    })"
                 } else {
                     " ($completedSubtasks/${subtasks.size})"
                 }
@@ -913,7 +1089,8 @@ fun NewTaskBottomSheet(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        subtasks[index] = subtask.copy(isCompleted = !subtask.isCompleted)
+                                        subtasks[index] =
+                                            subtask.copy(isCompleted = !subtask.isCompleted)
                                     }
                                     .padding(vertical = 3.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -930,7 +1107,11 @@ fun NewTaskBottomSheet(
                                     Box(
                                         modifier = Modifier
                                             .size(18.dp)
-                                            .border(1.5.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                            .border(
+                                                1.5.dp,
+                                                MaterialTheme.colorScheme.outline,
+                                                CircleShape
+                                            )
                                     )
                                 }
 
@@ -970,7 +1151,10 @@ fun NewTaskBottomSheet(
                                     },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(6.dp))
+                                        .background(
+                                            MaterialTheme.colorScheme.surfaceContainerLow,
+                                            RoundedCornerShape(6.dp)
+                                        )
                                         .padding(horizontal = 8.dp, vertical = 6.dp)
                                 )
                                 Text(
@@ -980,7 +1164,12 @@ fun NewTaskBottomSheet(
                                     modifier = Modifier
                                         .clickable {
                                             if (newSubtaskInput.isNotBlank()) {
-                                                subtasks.add(SubtaskItem(title = newSubtaskInput.trim(), isCompleted = false))
+                                                subtasks.add(
+                                                    SubtaskItem(
+                                                        title = newSubtaskInput.trim(),
+                                                        isCompleted = false
+                                                    )
+                                                )
                                                 newSubtaskInput = ""
                                                 isAddingSubtask = false
                                             }
@@ -1018,7 +1207,10 @@ fun NewTaskBottomSheet(
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 0.8.dp)
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    thickness = 0.8.dp
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1246,7 +1438,10 @@ private fun TimeDisplayBox(
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        ),
         modifier = modifier
     ) {
         Column(modifier = Modifier.padding(8.dp)) {

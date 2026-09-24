@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -51,6 +52,9 @@ enum class NavTab {
     SETTINGS
 }
 
+
+
+
 @Composable
     fun ChronosBottomNavBar(
     currentTab: NavTab,
@@ -58,10 +62,28 @@ enum class NavTab {
     strings: AppStrings,
     modifier: Modifier = Modifier
 ) {
+
+
+    val navBarItemColor = NavigationBarItemDefaults.colors(
+        // ۱. رنگ کپسول بیضی‌شکل پشت آیکون انتخاب‌شده:
+        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+
+        // ۲. رنگ آیکون انتخاب‌شده درون کپسول:
+        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+
+        // ۳. رنگ متن تب انتخاب‌شده (می‌تواند خود primary باشد):
+        selectedTextColor = MaterialTheme.colorScheme.primary,
+
+        // رنگ تب‌های غیرفعال:
+        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
     NavigationBar(
         modifier = modifier
     ) {
         NavigationBarItem(
+
             selected = currentTab == NavTab.TIMELINE,
             onClick = { onTabSelected(NavTab.TIMELINE) },
             icon = {
@@ -73,6 +95,7 @@ enum class NavTab {
             label = {
                 Text(text = strings.timeline)
             },
+            colors = navBarItemColor,
             modifier = Modifier.testTag("nav_timeline_tab")
         )
 
@@ -88,6 +111,7 @@ enum class NavTab {
             label = {
                 Text(text = strings.tasks)
             },
+            colors = navBarItemColor,
             modifier = Modifier.testTag("nav_tasks_tab")
         )
 
@@ -103,6 +127,7 @@ enum class NavTab {
             label = {
                 Text(text = strings.calendar)
             },
+            colors = navBarItemColor,
             modifier = Modifier.testTag("nav_calendar_tab")
         )
 
@@ -118,6 +143,7 @@ enum class NavTab {
             label = {
                 Text(text = strings.settings)
             },
+            colors = navBarItemColor,
             modifier = Modifier.testTag("nav_settings_tab")
         )
     }

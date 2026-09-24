@@ -1,5 +1,7 @@
 package com.example.ui.screens.timeline
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,16 +46,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.domain.model.AppLanguage
 import com.example.domain.model.Priority
 import com.example.domain.model.TaskItem
 import com.example.ui.components.NewTaskBottomSheet
 import com.example.ui.components.TimelineHeader
 import com.example.ui.strings.AppStrings
 import com.example.util.DateHelper
+import java.time.LocalDate
 import java.util.Calendar
 
 
@@ -82,9 +91,8 @@ fun TimelineScreen(
     )
 
 
-
-
 }
+
 // ۲. کل کدهای UI شما به این کامپوننت بدون وضعیت (Stateless) منتقل می‌شود
 @Composable
 fun TimelineContent(
@@ -113,6 +121,7 @@ fun TimelineContent(
     }
 
 
+    //تسک هایی که دارای زمان هستند
     val timedTasks = remember(tasks) {
         tasks.filter { !it.isAllDay && it.startTimeMinute >= 0 }
             .sortedBy { it.startTimeMinute }
@@ -179,7 +188,11 @@ fun TimelineContent(
                             letterSpacing = 0.5.sp
                         )
                         Text(
-                            text = "${if (strings.isPersian) DateHelper.formatPersianNumber(anytimeTasks.size) else anytimeTasks.size} ${strings.tasksCountSuffix}",
+                            text = "${
+                                if (strings.isPersian) DateHelper.formatPersianNumber(
+                                    anytimeTasks.size
+                                ) else anytimeTasks.size
+                            } ${strings.tasksCountSuffix}",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -188,7 +201,10 @@ fun TimelineContent(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(6.dp)) {
@@ -253,13 +269,18 @@ fun TimelineContent(
                                             text = if (strings.isPersian) task.category.persianLabel else task.category.englishLabel,
                                             fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.secondary,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            modifier = Modifier.padding(
+                                                horizontal = 6.dp,
+                                                vertical = 2.dp
+                                            )
                                         )
                                     }
                                 }
                                 if (index < anytimeTasks.size - 1) {
                                     HorizontalDivider(
-                                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(
+                                            alpha = 0.5f
+                                        ),
                                         thickness = 0.5.dp
                                     )
                                 }
@@ -294,10 +315,6 @@ fun TimelineContent(
 }
 
 
-
-
-
-
 // انتخاب روز از هفته
 @Composable
 private fun WeeklyDateStrip(
@@ -307,9 +324,11 @@ private fun WeeklyDateStrip(
     modifier: Modifier = Modifier
 ) {
     val todayEpoch = remember { DateHelper.todayEpochDay() }
+
     val days = remember(todayEpoch) {
         (-3..3).map { todayEpoch + it }
     }
+    val dateHelper = DateHelper
 
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -324,8 +343,9 @@ private fun WeeklyDateStrip(
             verticalAlignment = Alignment.CenterVertically
         ) {
             days.forEach { epochDay ->
-                val cal = DateHelper.getCalendarForEpochDay(epochDay)
+                val cal = dateHelper.getCalendarForEpochDay(epochDay)
                 val dayOfMonth = cal.get(java.util.Calendar.DAY_OF_MONTH)
+                val shamsiDay = dateHelper.epochDayToPersianDirect(epochDay)
                 val isSelected = epochDay == selectedEpochDay
 
                 val dayLabel = if (isPersian) {
@@ -350,7 +370,8 @@ private fun WeeklyDateStrip(
                     }
                 }
 
-                val dayNumStr = if (isPersian) DateHelper.formatPersianNumber(dayOfMonth) else dayOfMonth.toString()
+                val dayNumStr =
+                    if (isPersian) DateHelper.formatPersianNumber(shamsiDay.day) else dayOfMonth.toString()
 
                 Column(
                     modifier = Modifier
@@ -379,6 +400,88 @@ private fun WeeklyDateStrip(
         }
     }
 }
+
+
+// ۱. مدل داده تجمیع‌شده برای پاس دادن به Preview
+data class TimelineGridPreviewData(
+    val tasks: List<TaskItem>,
+    val strings: AppStrings,
+    val selectedEpochDay: Long
+)
+
+// ۲. ارائه‌دهنده مقادیر تستی با در نظر گرفتن ساختار تایم‌لاین (ساعت شروع، پایان و روز کامل)
+class TimelineGridPreviewParameterProvider : PreviewParameterProvider<TimelineGridPreviewData> {
+    @RequiresApi(Build.VERSION_CODES.O)
+    private val todayEpoch = LocalDate.now().toEpochDay()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    override val values: Sequence<TimelineGridPreviewData> = sequenceOf(
+        // حالت ۱: تایم‌لاین با تسک‌های زمان‌دار و روز کامل
+        TimelineGridPreviewData(
+            tasks = listOf(
+                TaskItem(
+                    id = 1L,
+                    title = "بررسی ایمیل‌ها و پلن روزانه",
+                    dateEpochDay = todayEpoch,
+                    isAllDay = true,
+                    isCompleted = true
+                ),
+                TaskItem(
+                    id = 2L,
+                    title = "جلسه اسکرام و بررسی اسپرینت",
+                    description = "هماهنگی تسک‌های تیم فرانت‌اند و بک‌اند",
+                    dateEpochDay = todayEpoch,
+                    startTimeMinute = 9 * 60,       // 09:00
+                    endTimeMinute = 10 * 60,        // 10:00
+                    locationOrDetails = "اتاق جلسات آنلاین"
+                ),
+                TaskItem(
+                    id = 3L,
+                    title = "توسعه کامپوننت TimelineGrid",
+                    description = "پیاده‌سازی Preview و اصلاح لاجیک درگ اند دراپ",
+                    dateEpochDay = todayEpoch,
+                    startTimeMinute = 11 * 60 + 30, // 11:30
+                    endTimeMinute = 13 * 60,        // 13:00
+                    isCompleted = false
+                ),
+                TaskItem(
+                    id = 4L,
+                    title = "بررسی کد و ادغام PRها",
+                    dateEpochDay = todayEpoch,
+                    startTimeMinute = 15 * 60,      // 15:00
+                    endTimeMinute = 16 * 60 + 30    // 16:30
+                )
+            ),
+            strings = AppStrings(AppLanguage.ENGLISH),
+            selectedEpochDay = todayEpoch
+        ),
+        // حالت ۲: حالت خالی (Empty State)
+        TimelineGridPreviewData(
+            tasks = emptyList(),
+            strings = AppStrings(AppLanguage.ENGLISH),
+            selectedEpochDay = todayEpoch
+        )
+    )
+}
+
+// ۳. تابع پیش‌نمایش Composable
+@Preview(showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
+private fun TimelineGridPreview(
+    @PreviewParameter(TimelineGridPreviewParameterProvider::class) data: TimelineGridPreviewData
+) {
+    TimelineGrid(
+        tasks = data.tasks,
+        strings = data.strings,
+        selectedEpochDay = data.selectedEpochDay,
+        onTaskClick = {},
+        onToggleComplete = {},
+        modifier = Modifier
+    )
+}
+
+
+//تمامی ساعات
 @Composable
 private fun TimelineGrid(
     tasks: List<TaskItem>,
@@ -390,58 +493,72 @@ private fun TimelineGrid(
 ) {
     val hours = remember { (0..23).toList() }
 
-    // بررسی اینکه آیا روز انتخاب‌شده دقیقاً "امروز" است یا خیر
     val isToday = remember(selectedEpochDay) {
         selectedEpochDay == DateHelper.todayEpochDay()
     }
 
-    // استخراج ساعت و دقیقه دقیق جاری
     val calendar = remember { Calendar.getInstance() }
     val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
     val currentMinute = calendar.get(Calendar.MINUTE)
 
     Column(modifier = modifier) {
         hours.forEach { hour ->
-            val hourTasks = tasks.filter { (it.startTimeMinute / 60) == hour }
+            // فیلتر تسک‌های متعلق به این ساعت
+            val hourTasks = tasks.filter { !it.isAllDay && (it.startTimeMinute / 60) == hour }
+                .sortedWith(
+                compareBy<TaskItem> { it.startTimeMinute }
+                    .thenBy { it.endTimeMinute }
+                    .thenBy { it.createdAt }
+            )
             val hourLabel = if (strings.isPersian) {
                 "${DateHelper.formatPersianNumber(hour)}:۰۰"
             } else {
                 String.format("%02d:00", hour)
             }
 
-            // استفاده از Box برای امکان شناور شدن خط روی ساعت جاری
-            Box(modifier = Modifier.fillMaxWidth()) {
-                // ردیف اصلی ساعت
-                Row(
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 64.dp)
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.Top
+                        .padding(horizontal = 16.dp)
                 ) {
-                    // Time Gutter (56dp)
-                    Text(
-                        text = hourLabel,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier
-                            .width(56.dp)
-                            .padding(top = 2.dp)
-                    )
-
-                    // Timeline Slot Content
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(bottom = 12.dp)
+                    // ۱. خط سرفصل: ساعت و Divider کاملاً در یک راستای افقی
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Text(
+                            text = hourLabel,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.width(48.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
                         HorizontalDivider(
+                            modifier = Modifier.weight(1f),
                             color = MaterialTheme.colorScheme.surfaceContainerHighest,
                             thickness = 1.dp
                         )
+                    }
 
+                    // ۲. فضای محتوای تسک‌ها (زیر ساعت و خط)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = 56.dp,
+                                top = 6.dp,
+                                bottom = 6.dp
+                            ) // شروع دقیقاً هم‌راستا با Divider
+                    ) {
                         if (hourTasks.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
                             hourTasks.forEach { task ->
                                 TimelineTaskCard(
                                     task = task,
@@ -452,22 +569,20 @@ private fun TimelineGrid(
                                 Spacer(modifier = Modifier.height(6.dp))
                             }
                         } else {
-                            // ارتفاع حداقلی برای ساعت‌های خالی تا جا برای خط دقیقه باشد
-                            Spacer(modifier = Modifier.height(54.dp))
+                            // در صورت نبود تسک، ارتفاع حداقلی نگه داشته می‌شود
+                            Spacer(modifier = Modifier.height(40.dp))
                         }
                     }
                 }
 
-                // رسم خط دقیق بر اساس ساعت و دقیقه در صورتی که روز، روزِ جاری باشد
+                // ۳. نشانگر زمان جاری (خط Now)
                 if (isToday && hour == currentHour) {
-                    // محاسبه جابه‌جایی عمودی بر اساس نسبت دقیقه (۰ تا ۶۰)
                     val minuteFraction = currentMinute / 60f
-                    // جابه‌جایی بر مبنای پیکسل/ارتفاع
-                    androidx.compose.foundation.layout.Box(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp)
-                            .offset(y = (minuteFraction * 50).dp) // هماهنگ با ارتفاع ساعت
+                            .padding(horizontal = 16.dp)
+                            .offset(y = (minuteFraction * 64).dp)
                     ) {
                         NowIndicatorLine(
                             hour = currentHour,
@@ -489,7 +604,10 @@ private fun NowIndicatorLine(
     modifier: Modifier = Modifier
 ) {
     val nowTime = if (strings.isPersian) {
-        val minuteStr = if (minute < 10) "۰${DateHelper.formatPersianNumber(minute)}" else DateHelper.formatPersianNumber(minute)
+        val minuteStr =
+            if (minute < 10) "۰${DateHelper.formatPersianNumber(minute)}" else DateHelper.formatPersianNumber(
+                minute
+            )
         "${DateHelper.formatPersianNumber(hour)}:$minuteStr"
     } else {
         String.format("%02d:%02d", hour, minute)
@@ -593,7 +711,10 @@ private fun TimelineTaskCard(
         Surface(
             shape = RoundedCornerShape(10.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
@@ -674,7 +795,10 @@ private fun TimelineTaskCard(
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        modifier = Modifier.padding(
+                                            horizontal = 5.dp,
+                                            vertical = 1.dp
+                                        )
                                     )
                                 }
                             }
@@ -690,18 +814,21 @@ private fun TimelineTaskCard(
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(18.dp)
                     )
+
                     "call" -> Icon(
                         imageVector = Icons.Default.Call,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(16.dp)
                     )
+
                     "edit_note" -> Icon(
                         imageVector = Icons.Default.EditNote,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(18.dp)
                     )
+
                     "meet" -> Row(
                         horizontalArrangement = Arrangement.spacedBy(3.dp),
                         verticalAlignment = Alignment.CenterVertically
