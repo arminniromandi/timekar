@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Chronos"
+rootProject.name = "TimeKar"
 
 include(":app")
