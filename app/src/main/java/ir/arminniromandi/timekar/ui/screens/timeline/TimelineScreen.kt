@@ -44,9 +44,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +69,8 @@ import ir.arminniromandi.timekar.domain.UserSettings
 import ir.arminniromandi.timekar.domain.model.Priority
 import ir.arminniromandi.timekar.domain.model.TaskItem
 import ir.arminniromandi.timekar.ui.components.NewTaskBottomSheet
+import ir.arminniromandi.timekar.ui.components.SaveTaskFromVoiceDialog
+import ir.arminniromandi.timekar.ui.components.SpeedDialFab
 import ir.arminniromandi.timekar.ui.components.TimelineHeader
 import ir.arminniromandi.timekar.ui.strings.AppStrings
 import ir.arminniromandi.timekar.util.DateHelper
@@ -121,6 +125,7 @@ fun TimelineContent(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val todayEpoch = remember { DateHelper.todayEpochDay() }
+    var showVoiceDialog by remember { mutableStateOf(false) }
 
     fun pageToEpoch(page: Int): Long = todayEpoch + (page - PAGER_INITIAL_PAGE)
     fun epochToPage(epoch: Long): Int = PAGER_INITIAL_PAGE + (epoch - todayEpoch).toInt()
@@ -173,26 +178,24 @@ fun TimelineContent(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { onOpenNewTaskSheet(null) },
-                containerColor = MaterialTheme.colorScheme.onSurface,
-                contentColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                shape = RoundedCornerShape(14.dp),
-                elevation = FloatingActionButtonDefaults.elevation(4.dp),
-                modifier = Modifier
-                    .padding(bottom = 8.dp)
-                    .testTag("timeline_fab_add")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = strings.newTask,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+
+
+            SpeedDialFab(
+                onManualTaskClick = {onOpenNewTaskSheet(null)},
+                onVoiceTaskClick = {showVoiceDialog = true},
+                strings = strings
+            )
         },
         containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
+
+        SaveTaskFromVoiceDialog(
+            showDialog = showVoiceDialog,
+            strings = strings,
+            onDismissRequest = { showVoiceDialog = false }
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()

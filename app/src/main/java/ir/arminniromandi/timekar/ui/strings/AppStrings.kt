@@ -7,7 +7,7 @@ class AppStrings(val language: AppLanguage) {
     val isPersian: Boolean get() = language == AppLanguage.PERSIAN
 
     // Navigation & General
-    val appTitle: String get() = if (isPersian) "کرونوس" else "Chronos"
+    val appTitle: String get() = if (isPersian) "تایمکار" else "TimeKar"
     val timeline: String get() = if (isPersian) "خط زمانی" else "Timeline"
     val tasks: String get() = if (isPersian) "وظایف" else "Tasks"
     val calendar: String get() = if (isPersian) "تقویم" else "Calendar"
@@ -19,6 +19,10 @@ class AppStrings(val language: AppLanguage) {
     val today: String get() = if (isPersian) "امروز" else "Today"
     val viewSwitcher: String get() = if (isPersian) "تغییر نما" else "View Switcher"
     val monthView: String get() = if (isPersian) "نمای ماهانه" else "Month View"
+
+    // Floating Action Button
+    val saveManually: String get() = if (isPersian) "ثبت دستی" else "Add Manually"
+    val saveByVoice: String get() = if (isPersian) "ثبت با ویس" else "Add By Voice"
 
     // Tasks Screen Filter Chips
     val filterAll: String get() = if (isPersian) "همه" else "All"
@@ -76,6 +80,21 @@ class AppStrings(val language: AppLanguage) {
     val p3Sub: String get() = if (isPersian) "در زمان مناسب" else "When time permits"
     val p4Title: String get() = if (isPersian) "P4 • پایین / هیچ" else "P4 • Low / None"
     val p4Sub: String get() = if (isPersian) "فهرست انتظار" else "Backlog item"
+
+    //VoiceDialog
+    val example: String get() = if (isPersian) "💡مثال:" else "💡Example:"
+    val listening: String get() = if (isPersian) "در حال شنیدن..." else "Listening..."
+    val close: String get() = if (isPersian) "بستن" else "Close"
+    val exampleMessage : String get() = if (isPersian) "«فردا ساعت ۹ تا ۹ و نیم جلسه دارم اولویت بالا»" else "Meeting tomorrow from 9 to 9:30 AM, high priority"
+    val recordingPaused: String
+        get() = if (isPersian) "ضبط متوقف است. برای ادامه روی دکمه شروع بزنید."
+        else "Recording paused. Tap resume to continue."
+    val resume: String get() = if (isPersian) "ادامه" else "Resume"
+    val pause: String get() = if (isPersian) "توقف" else "Pause"
+
+
+
+
 
     //error Message
     val timeErrorMessage: String get() = if (isPersian) "زمان پایان نمی تواند قبل از زمان شروع باشد" else "End time cannot be earlier than start time."
