@@ -185,24 +185,6 @@ fun CalendarScreen(
                 }
             }
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.openNewTaskSheet() },
-                containerColor = MaterialTheme.colorScheme.onSurface,
-                contentColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                shape = RoundedCornerShape(14.dp),
-                elevation = FloatingActionButtonDefaults.elevation(4.dp),
-                modifier = Modifier
-                    .padding(bottom = 8.dp)
-                    .testTag("calendar_fab_add")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = strings.newTask,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        },
         containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->

@@ -1,6 +1,11 @@
 package ir.arminniromandi.timekar.ui.screens.timeline
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -26,15 +31,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -54,7 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,6 +64,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.arminniromandi.timekar.domain.AppLanguage
 import ir.arminniromandi.timekar.domain.StartDay
@@ -74,7 +77,6 @@ import ir.arminniromandi.timekar.ui.components.SpeedDialFab
 import ir.arminniromandi.timekar.ui.components.TimelineHeader
 import ir.arminniromandi.timekar.ui.strings.AppStrings
 import ir.arminniromandi.timekar.util.DateHelper
-
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.Calendar
@@ -109,6 +111,8 @@ fun TimelineScreen(
     )
 }
 
+
+
 @Composable
 fun TimelineContent(
     uiState: TimelineUiState,
@@ -125,10 +129,14 @@ fun TimelineContent(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val todayEpoch = remember { DateHelper.todayEpochDay() }
-    var showVoiceDialog by remember { mutableStateOf(false) }
+
+
 
     fun pageToEpoch(page: Int): Long = todayEpoch + (page - PAGER_INITIAL_PAGE)
     fun epochToPage(epoch: Long): Int = PAGER_INITIAL_PAGE + (epoch - todayEpoch).toInt()
+
+
+
 
     val pagerState = rememberPagerState(
         initialPage = remember { epochToPage(uiState.selectedEpochDay) },
@@ -180,21 +188,13 @@ fun TimelineContent(
         floatingActionButton = {
 
 
-            SpeedDialFab(
-                onManualTaskClick = {onOpenNewTaskSheet(null)},
-                onVoiceTaskClick = {showVoiceDialog = true},
-                strings = strings
-            )
+
         },
         containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
 
-        SaveTaskFromVoiceDialog(
-            showDialog = showVoiceDialog,
-            strings = strings,
-            onDismissRequest = { showVoiceDialog = false }
-        )
+
 
         Column(
             modifier = Modifier

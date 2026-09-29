@@ -4,6 +4,7 @@ import android.content.Context
 import ir.arminniromandi.timekar.data.local.AppDatabase
 import ir.arminniromandi.timekar.data.repository.SettingsRepositoryImpl
 import ir.arminniromandi.timekar.data.repository.TaskRepositoryImpl
+import ir.arminniromandi.timekar.data.voice.VoiceToTextManager
 import ir.arminniromandi.timekar.domain.repository.SettingsRepository
 import ir.arminniromandi.timekar.domain.repository.TaskRepository
 import ir.arminniromandi.timekar.domain.usecase.AddTaskUseCase
@@ -30,12 +31,16 @@ interface AppContainer {
     val toggleSubtaskUseCase: ToggleSubtaskUseCase
     val getSettingsUseCase: GetSettingsUseCase
     val updateSettingsUseCase: UpdateSettingsUseCase
+
+    val voiceManager: VoiceToTextManager
+
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
     override val database: AppDatabase by lazy {
         AppDatabase.getInstance(context)
     }
+
 
     override val taskRepository: TaskRepository by lazy {
         TaskRepositoryImpl(database.taskDao())
@@ -79,5 +84,8 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val updateSettingsUseCase: UpdateSettingsUseCase by lazy {
         UpdateSettingsUseCase(settingsRepository)
+    }
+    override val voiceManager: VoiceToTextManager by lazy {
+        VoiceToTextManager(context)
     }
 }

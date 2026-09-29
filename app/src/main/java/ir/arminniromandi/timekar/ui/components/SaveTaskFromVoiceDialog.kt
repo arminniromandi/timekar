@@ -59,13 +59,11 @@ import ir.arminniromandi.timekar.ui.strings.AppStrings
 
 @Composable
 fun SaveTaskFromVoiceDialog(
-    showDialog: Boolean,
     onDismissRequest: () -> Unit,
     spokenText: String = "",
     strings : AppStrings ,
     onListeningStateChanged: ((Boolean) -> Unit)? = null
 ) {
-    if (!showDialog) return
 
     var isListening by rememberSaveable { mutableStateOf(true) }
 
