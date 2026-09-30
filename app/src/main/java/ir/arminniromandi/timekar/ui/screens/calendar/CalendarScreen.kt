@@ -23,12 +23,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.arminniromandi.timekar.domain.model.Priority
 import ir.arminniromandi.timekar.domain.model.TaskItem
 import ir.arminniromandi.timekar.ui.components.NewTaskBottomSheet
+import ir.arminniromandi.timekar.ui.shared.SharedTasksViewModel
 
 import ir.arminniromandi.timekar.ui.strings.AppStrings
 import ir.arminniromandi.timekar.util.DateHelper
@@ -62,12 +60,15 @@ import java.util.Calendar
 @Composable
 fun CalendarScreen(
     viewModel: CalendarViewModel,
+    sharedViewModel: SharedTasksViewModel,
     strings: AppStrings,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val sharedState by sharedViewModel.uiState.collectAsStateWithLifecycle()
     val allTasks by viewModel.allTasks.collectAsStateWithLifecycle()
     val selectedDayTasks by viewModel.selectedDayTasks.collectAsStateWithLifecycle()
+    val selectedEpochDay = sharedState.selectedEpochDay
 
     val monthNamesEn = listOf(
         "January", "February", "March", "April", "May", "June",
@@ -82,6 +83,11 @@ fun CalendarScreen(
         viewModel.goToToday(strings.isPersian)
     }
 
+    // اگر روز انتخابی از تایم‌لاین تغییر کرد، ماه نمایشی هم دنبالش می‌رود
+    LaunchedEffect(selectedEpochDay, strings.isPersian) {
+        viewModel.syncMonthWithSelectedDate(selectedEpochDay, strings.isPersian)
+    }
+
     val currentMonthTitle = remember(uiState.selectedMonth, uiState.selectedYear, strings.isPersian) {
         if (strings.isPersian) {
             val monthFa = monthNamesFa.getOrElse(uiState.selectedMonth - 1) { "" }
@@ -93,11 +99,11 @@ fun CalendarScreen(
         }
     }
 
-    val selectedDateHeader = remember(uiState.selectedEpochDay, selectedDayTasks.size, strings.isPersian) {
+    val selectedDateHeader = remember(selectedEpochDay, selectedDayTasks.size, strings.isPersian) {
         val dateStr = if (strings.isPersian) {
-            DateHelper.formatPersianHeaderDate(uiState.selectedEpochDay)
+            DateHelper.formatPersianHeaderDate(selectedEpochDay)
         } else {
-            DateHelper.formatEnglishHeaderDate(uiState.selectedEpochDay)
+            DateHelper.formatEnglishHeaderDate(selectedEpochDay)
         }
         val countStr = if (strings.isPersian) {
             DateHelper.formatPersianNumber(selectedDayTasks.size)
@@ -206,7 +212,7 @@ fun CalendarScreen(
                     MonthCalendarGrid(
                         year = uiState.selectedYear,
                         month = uiState.selectedMonth,
-                        selectedEpochDay = uiState.selectedEpochDay,
+                        selectedEpochDay = selectedEpochDay,
                         allTasks = allTasks,
                         isPersian = strings.isPersian,
                         onSelectDay = { viewModel.selectDate(it, strings.isPersian) }
@@ -253,8 +259,8 @@ fun CalendarScreen(
                     CalendarTaskCard(
                         task = task,
                         strings = strings,
-                        onClick = { viewModel.openNewTaskSheet(task) },
-                        onToggleComplete = { viewModel.toggleTaskComplete(task.id) }
+                        onClick = { sharedViewModel.openNewTaskSheet(task) },
+                        onToggleComplete = { sharedViewModel.toggleTaskComplete(task.id) }
                     )
                 }
             }
@@ -265,12 +271,12 @@ fun CalendarScreen(
         }
 
         // New / Edit Task Bottom Sheet
-        if (uiState.isNewTaskSheetVisible) {
+        if (sharedState.isNewTaskSheetVisible) {
             NewTaskBottomSheet(
                 strings = strings,
-                initialTask = uiState.taskToEdit,
-                onDismiss = { viewModel.closeNewTaskSheet() },
-                onSaveTask = { viewModel.saveTask(it) }
+                initialTask = sharedState.taskToEdit,
+                onDismiss = { sharedViewModel.closeNewTaskSheet() },
+                onSaveTask = { sharedViewModel.saveTask(it) }
             )
         }
     }

@@ -79,11 +79,13 @@ import androidx.compose.ui.unit.sp
 import ir.arminniromandi.timekar.domain.UserSettings
 import ir.arminniromandi.timekar.domain.model.Category
 import ir.arminniromandi.timekar.domain.model.Priority
+import ir.arminniromandi.timekar.domain.model.ReminderOption
 import ir.arminniromandi.timekar.domain.model.SubtaskItem
 import ir.arminniromandi.timekar.domain.model.TaskItem
 import ir.arminniromandi.timekar.ui.strings.AppStrings
 import ir.arminniromandi.timekar.util.DateHelper
 import java.util.Calendar
+
 
 private enum class ActivePicker {
     NONE, DATE, TIME, PRIORITY, CATEGORY
@@ -108,27 +110,23 @@ fun NewTaskBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val todayEpoch = remember { DateHelper.todayEpochDay() }
 
-    // محاسبه دقیق روزهای پایان هفته و هفته بعد بر اساس زبان و تقویم
+    // محاسبه روزهای پایان هفته و هفته بعد بر اساس زبان و تقویم
     val (weekendEpoch, nextWeekEpoch) = remember(todayEpoch, strings.isPersian) {
         val cal = Calendar.getInstance()
-        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK) // 1 = Sunday, 6 = Friday, 7 = Saturday
+        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
 
         val daysUntilWeekend = if (strings.isPersian) {
-            // پایان هفته برای تقویم شمسی (جمعه)
             val diff = Calendar.FRIDAY - dayOfWeek
             if (diff <= 0) diff + 7 else diff
         } else {
-            // پایان هفته برای تقویم میلادی (یکشنبه)
             val diff = Calendar.SUNDAY - dayOfWeek
             if (diff <= 0) diff + 7 else diff
         }
 
         val daysUntilNextWeek = if (strings.isPersian) {
-            // شنبه اول هفته آینده
             val diff = (Calendar.SATURDAY - dayOfWeek + 7) % 7
             if (diff == 0) 7 else diff
         } else {
-            // دوشنبه اول هفته آینده میلادی
             val diff = (Calendar.MONDAY - dayOfWeek + 7) % 7
             if (diff == 0) 7 else diff
         }
@@ -152,12 +150,13 @@ fun NewTaskBottomSheet(
     var isAllDay by remember { mutableStateOf(initialTask?.isAllDay ?: false) }
     var priority by remember { mutableStateOf(initialTask?.priority ?: Priority.HIGH) }
     var category by remember { mutableStateOf(initialTask?.category ?: Category.PRODUCT_CORE) }
-    var reminderText by remember {
-        mutableStateOf(
-            initialTask?.reminderText
-                ?: if (strings.isPersian) "۱۰ دقیقه قبل از طریق بنر سیستم" else "10 minutes prior via system banner"
-        )
+
+    // مدیریت گزینه‌های یادآوری با Enum
+    val reminderOptions = remember { ReminderOption.entries }
+    var selectedReminder by remember {
+        mutableStateOf(ReminderOption.fromMinutes(initialTask?.reminderMin))
     }
+
     var recurrenceText by remember {
         mutableStateOf(
             initialTask?.recurrenceText
@@ -186,15 +185,11 @@ fun NewTaskBottomSheet(
         mutableStateOf<TimePickerState?>(null)
     }
 
-
-
-
     val context = LocalContext.current
 
     val attemptSaveTask = {
         if (title.isBlank()) {
             Toast.makeText(context, strings.titleIsEmptyError, Toast.LENGTH_SHORT).show()
-
         } else if (!isAllDay && startMinute >= endMinute) {
             Toast.makeText(context, strings.timeErrorMessage, Toast.LENGTH_SHORT).show()
         } else {
@@ -209,7 +204,7 @@ fun NewTaskBottomSheet(
                 priority = priority,
                 category = category,
                 locationOrDetails = initialTask?.locationOrDetails ?: "",
-                reminderText = reminderText,
+                reminderMin = selectedReminder.minutes,
                 recurrenceText = recurrenceText,
                 isCompleted = initialTask?.isCompleted ?: false,
                 subtasks = subtasks.toList()
@@ -295,7 +290,7 @@ fun NewTaskBottomSheet(
                 )
 
                 Button(
-                    onClick = {attemptSaveTask()},
+                    onClick = { attemptSaveTask() },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = Color.White
@@ -592,7 +587,6 @@ fun NewTaskBottomSheet(
                                 }
                             }
 
-                            // 4 Date Presets محاسبه‌شده و دقیق
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -672,7 +666,6 @@ fun NewTaskBottomSheet(
                                 }
                             }
 
-                            // All-day switch
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -694,7 +687,6 @@ fun NewTaskBottomSheet(
                             }
 
                             if (!isAllDay) {
-                                // Start / End Time fields
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -731,7 +723,6 @@ fun NewTaskBottomSheet(
                                     )
                                 }
 
-                                // Quick Durations
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
                                         text = strings.quickDuration,
@@ -913,7 +904,6 @@ fun NewTaskBottomSheet(
                                             activePicker = ActivePicker.NONE
                                         }
                                     ) {
-
                                         Text(
                                             text = if (strings.isPersian) cat.persianLabel else cat.englishLabel,
                                             fontSize = 12.sp,
@@ -937,28 +927,7 @@ fun NewTaskBottomSheet(
                 )
 
                 // Progressive Disclosure Section: Contextual Metadata
-                // 1. Reminder
-                val reminderOptions = remember {
-                    if (strings.isPersian) {
-                        listOf(
-                            "۱۰ دقیقه قبل از طریق بنر سیستم",
-                            "۳۰ دقیقه قبل",
-                            "۱ ساعت قبل",
-                            "در زمان رویداد",
-                            "هیچ"
-                        )
-                    } else {
-                        listOf(
-                            "10 minutes prior via system banner",
-                            "30 minutes prior",
-                            "1 hour prior",
-                            "At time of event",
-                            "None"
-                        )
-                    }
-                }
-                var remIndex by remember { mutableIntStateOf(0) }
-
+                // 1. Reminder (مدیریت‌شده با ReminderOption)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -981,7 +950,7 @@ fun NewTaskBottomSheet(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = reminderText,
+                                text = selectedReminder.getLabel(strings.isPersian),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
@@ -993,8 +962,9 @@ fun NewTaskBottomSheet(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .clickable {
-                                remIndex = (remIndex + 1) % reminderOptions.size
-                                reminderText = reminderOptions[remIndex]
+                                val currentIndex = reminderOptions.indexOf(selectedReminder)
+                                val nextIndex = (currentIndex + 1) % reminderOptions.size
+                                selectedReminder = reminderOptions[nextIndex]
                             }
                             .padding(4.dp)
                     )
@@ -1096,7 +1066,6 @@ fun NewTaskBottomSheet(
                         )
                     }
 
-                    // Subtask items
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1144,7 +1113,6 @@ fun NewTaskBottomSheet(
                             }
                         }
 
-                        // Add Subtask Box
                         if (isAddingSubtask) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1221,7 +1189,7 @@ fun NewTaskBottomSheet(
                 }
             }
 
-            // Bottom Action Toolbar (Material 3 Mobile Utility Bar)
+            // Bottom Action Toolbar
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 modifier = Modifier.fillMaxWidth()
@@ -1299,13 +1267,12 @@ fun NewTaskBottomSheet(
                         }
                     }
 
-                    // Floating confirm circle button
                     Box(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary)
-                            .clickable{
+                            .clickable {
                                 attemptSaveTask()
                             },
                         contentAlignment = Alignment.Center

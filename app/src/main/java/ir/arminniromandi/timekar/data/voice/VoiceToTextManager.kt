@@ -6,9 +6,12 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 
 class VoiceToTextManager(private val context: Context) {
 
@@ -30,22 +33,31 @@ class VoiceToTextManager(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageCode)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageCode)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            // تنظیم ۳ ثانیه سکوت پس از اتمام کلام قبل از پردازش نهایی
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
         }
+
+        var autoCloseJob: Job? = null
 
         val listener = object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 trySend(VoiceRecognitionState.Listening)
             }
 
-            override fun onBeginningOfSpeech() {}
+            override fun onBeginningOfSpeech() {
+                autoCloseJob?.cancel()
+            }
+
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
 
             override fun onEndOfSpeech() {
-                trySend(VoiceRecognitionState.Idle)
+                // کاربر صحبتش تمام شده؛ منتظر آماده شدن متن نهایی در onResults می‌مانیم
             }
 
             override fun onError(errorCode: Int) {
+                autoCloseJob?.cancel()
                 val message = when (errorCode) {
                     SpeechRecognizer.ERROR_NO_MATCH -> "صدایی تشخیص داده نشد"
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "زمان صحبت به پایان رسید"
@@ -55,6 +67,7 @@ class VoiceToTextManager(private val context: Context) {
                     else -> "خطا در پردازش صوت ($errorCode)"
                 }
                 trySend(VoiceRecognitionState.Error(message, errorCode))
+                close()
             }
 
             override fun onResults(results: Bundle?) {
@@ -62,7 +75,14 @@ class VoiceToTextManager(private val context: Context) {
                 if (text.isNotBlank()) {
                     trySend(VoiceRecognitionState.SpokenText(text = text, isFinal = true))
                 }
-                trySend(VoiceRecognitionState.Idle)
+
+                // شروع شمارش معکوس ۳ ثانیه‌ای برای قطع و بستن Flow
+                autoCloseJob?.cancel()
+                autoCloseJob = launch {
+                    delay(3000L)
+                    trySend(VoiceRecognitionState.Idle)
+                    close() // بستن جریان (Flow) که باعث اجرای awaitClose و نابودی recognizer می‌شود
+                }
             }
 
             override fun onPartialResults(partialResults: Bundle?) {
@@ -78,8 +98,8 @@ class VoiceToTextManager(private val context: Context) {
         recognizer?.setRecognitionListener(listener)
         recognizer?.startListening(intent)
 
-        // تمیزکاری خودکار هنگام لغو یا بسته شدن Flow
         awaitClose {
+            autoCloseJob?.cancel()
             recognizer?.stopListening()
             recognizer?.cancel()
             recognizer?.destroy()

@@ -1,11 +1,6 @@
 package ir.arminniromandi.timekar.ui.screens.timeline
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Build
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -46,17 +41,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -64,7 +56,6 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.arminniromandi.timekar.domain.AppLanguage
 import ir.arminniromandi.timekar.domain.StartDay
@@ -72,9 +63,9 @@ import ir.arminniromandi.timekar.domain.UserSettings
 import ir.arminniromandi.timekar.domain.model.Priority
 import ir.arminniromandi.timekar.domain.model.TaskItem
 import ir.arminniromandi.timekar.ui.components.NewTaskBottomSheet
-import ir.arminniromandi.timekar.ui.components.SaveTaskFromVoiceDialog
-import ir.arminniromandi.timekar.ui.components.SpeedDialFab
 import ir.arminniromandi.timekar.ui.components.TimelineHeader
+import ir.arminniromandi.timekar.ui.shared.SharedTasksUiState
+import ir.arminniromandi.timekar.ui.shared.SharedTasksViewModel
 import ir.arminniromandi.timekar.ui.strings.AppStrings
 import ir.arminniromandi.timekar.util.DateHelper
 import kotlinx.coroutines.launch
@@ -87,14 +78,14 @@ private const val PAGER_INITIAL_PAGE = PAGER_PAGE_COUNT / 2
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineScreen(
-    viewModel: TimelineViewModel,
+    viewModel: SharedTasksViewModel,
     strings: AppStrings,
     onNavigateToCalendar: () -> Unit,
     modifier: Modifier = Modifier,
     userSettings: UserSettings = UserSettings()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val tasks by viewModel.dayTasks.collectAsStateWithLifecycle()
+    val tasks by viewModel.selectedDayTasks.collectAsStateWithLifecycle()
 
     TimelineContent(
         uiState = uiState,
@@ -111,11 +102,9 @@ fun TimelineScreen(
     )
 }
 
-
-
 @Composable
 fun TimelineContent(
-    uiState: TimelineUiState,
+    uiState: SharedTasksUiState,
     tasks: List<TaskItem>,
     strings: AppStrings,
     startDay: StartDay = StartDay.SATURDAY,
@@ -130,13 +119,8 @@ fun TimelineContent(
     val coroutineScope = rememberCoroutineScope()
     val todayEpoch = remember { DateHelper.todayEpochDay() }
 
-
-
     fun pageToEpoch(page: Int): Long = todayEpoch + (page - PAGER_INITIAL_PAGE)
     fun epochToPage(epoch: Long): Int = PAGER_INITIAL_PAGE + (epoch - todayEpoch).toInt()
-
-
-
 
     val pagerState = rememberPagerState(
         initialPage = remember { epochToPage(uiState.selectedEpochDay) },
@@ -145,7 +129,7 @@ fun TimelineContent(
 
     val latestSelectedEpochDay by rememberUpdatedState(uiState.selectedEpochDay)
 
-// ۱. هماهنگی اسکرول کاربر با تغییر تاریخ در ViewModel
+    // ۱. هماهنگی اسکرول کاربر با تغییر تاریخ در ViewModel
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { settledPage ->
             val targetEpoch = pageToEpoch(settledPage)
@@ -155,7 +139,7 @@ fun TimelineContent(
         }
     }
 
-// ۲. انیمیشن اسکرول فقط زمانی فعال شود که کاربر خودش صفحه را با دست نگه نداشته باشد
+    // ۲. انیمیشن اسکرول فقط زمانی فعال شود که کاربر خودش صفحه را با دست نگه نداشته باشد
     LaunchedEffect(uiState.selectedEpochDay) {
         val targetPage = epochToPage(uiState.selectedEpochDay)
         if (pagerState.currentPage != targetPage && !pagerState.isScrollInProgress) {
@@ -185,16 +169,9 @@ fun TimelineContent(
                 onMonthViewClick = onNavigateToCalendar
             )
         },
-        floatingActionButton = {
-
-
-
-        },
         containerColor = MaterialTheme.colorScheme.surface,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-
-
 
         Column(
             modifier = Modifier
@@ -293,7 +270,6 @@ private fun WeeklyDateStrip(
 
     // محاسبه دقیق و ریاضی ۷ روز هفته، کاملاً ثابت برای تمام روزهای داخل همان هفته
     val days = remember(selectedEpochDay, startDayIndex) {
-        // تبدیل فرمول ریاضی قطعی: روز 0 مبدا یونیکس پنج‌شنبه بوده است
         val dayOfWeekFromSat = Math.floorMod(selectedEpochDay + 5L, 7L).toInt()
         val daysSinceWeekStart = Math.floorMod(dayOfWeekFromSat - startDayIndex, 7)
         val startOfWeekEpoch = selectedEpochDay - daysSinceWeekStart

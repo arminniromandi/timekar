@@ -11,7 +11,7 @@ data class TaskItem(
     val priority: Priority = Priority.NORMAL,
     val category: Category = Category.GENERAL,
     val locationOrDetails: String = "",
-    val reminderText: String = "10 minutes prior via system banner",
+    val reminderMin: Int = 10,
     val recurrenceText: String = "Weekly on Thursday",
     val isCompleted: Boolean = false,
     val completedAt: Long? = null,
@@ -32,4 +32,7 @@ data class TaskItem(
             val endM = String.format("%02d", endTimeMinute % 60)
             return "$startH:$startM – $endH:$endM"
         }
+    val hasReminder: Boolean
+        get() = reminderMin >= 0 && !isCompleted && startTimeMinute >= 0
+
 }

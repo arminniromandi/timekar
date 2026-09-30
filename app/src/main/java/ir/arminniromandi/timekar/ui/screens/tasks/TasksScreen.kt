@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
@@ -32,8 +31,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.arminniromandi.timekar.domain.model.TaskItem
 import ir.arminniromandi.timekar.ui.components.NewTaskBottomSheet
 
+import ir.arminniromandi.timekar.ui.shared.SharedTasksViewModel
 import ir.arminniromandi.timekar.ui.strings.AppStrings
 import ir.arminniromandi.timekar.util.DateHelper
 
@@ -64,10 +62,12 @@ import ir.arminniromandi.timekar.util.DateHelper
 @Composable
 fun TasksScreen(
     viewModel: TasksViewModel,
+    sharedViewModel: SharedTasksViewModel,
     strings: AppStrings,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val sharedState by sharedViewModel.uiState.collectAsStateWithLifecycle()
     val allTasks by viewModel.allTasks.collectAsStateWithLifecycle()
     val filteredTasks by viewModel.filteredTasks.collectAsStateWithLifecycle()
 
@@ -306,8 +306,8 @@ fun TasksScreen(
                                 task = task,
                                 strings = strings,
                                 isOverdue = true,
-                                onClick = { viewModel.openNewTaskSheet(task) },
-                                onToggleComplete = { viewModel.toggleTaskComplete(task.id) }
+                                onClick = { sharedViewModel.openNewTaskSheet(task) },
+                                onToggleComplete = { sharedViewModel.toggleTaskComplete(task.id) }
                             )
                         }
                     }
@@ -341,8 +341,8 @@ fun TasksScreen(
                                 task = task,
                                 strings = strings,
                                 isOverdue = false,
-                                onClick = { viewModel.openNewTaskSheet(task) },
-                                onToggleComplete = { viewModel.toggleTaskComplete(task.id) }
+                                onClick = { sharedViewModel.openNewTaskSheet(task) },
+                                onToggleComplete = { sharedViewModel.toggleTaskComplete(task.id) }
                             )
                         }
                     }
@@ -376,8 +376,8 @@ fun TasksScreen(
                                 task = task,
                                 strings = strings,
                                 isOverdue = false,
-                                onClick = { viewModel.openNewTaskSheet(task) },
-                                onToggleComplete = { viewModel.toggleTaskComplete(task.id) }
+                                onClick = { sharedViewModel.openNewTaskSheet(task) },
+                                onToggleComplete = { sharedViewModel.toggleTaskComplete(task.id) }
                             )
                         }
                     }
@@ -429,8 +429,8 @@ fun TasksScreen(
                                         task = task,
                                         strings = strings,
                                         isOverdue = false,
-                                        onClick = { viewModel.openNewTaskSheet(task) },
-                                        onToggleComplete = { viewModel.toggleTaskComplete(task.id) }
+                                        onClick = { sharedViewModel.openNewTaskSheet(task) },
+                                        onToggleComplete = { sharedViewModel.toggleTaskComplete(task.id) }
                                     )
                                 }
                             }
@@ -445,12 +445,12 @@ fun TasksScreen(
         }
 
         // New / Edit Task Bottom Sheet
-        if (uiState.isNewTaskSheetVisible) {
+        if (sharedState.isNewTaskSheetVisible) {
             NewTaskBottomSheet(
                 strings = strings,
-                initialTask = uiState.taskToEdit,
-                onDismiss = { viewModel.closeNewTaskSheet() },
-                onSaveTask = { viewModel.saveTask(it ) }
+                initialTask = sharedState.taskToEdit,
+                onDismiss = { sharedViewModel.closeNewTaskSheet() },
+                onSaveTask = { sharedViewModel.saveTask(it) }
             )
         }
     }

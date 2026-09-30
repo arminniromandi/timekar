@@ -5,10 +5,12 @@ import ir.arminniromandi.timekar.data.local.AppDatabase
 import ir.arminniromandi.timekar.data.repository.SettingsRepositoryImpl
 import ir.arminniromandi.timekar.data.repository.TaskRepositoryImpl
 import ir.arminniromandi.timekar.data.voice.VoiceToTextManager
+import ir.arminniromandi.timekar.domain.alarm.TaskReminderScheduler
 import ir.arminniromandi.timekar.domain.repository.SettingsRepository
 import ir.arminniromandi.timekar.domain.repository.TaskRepository
 import ir.arminniromandi.timekar.domain.usecase.AddTaskUseCase
 import ir.arminniromandi.timekar.domain.usecase.DeleteTaskUseCase
+import ir.arminniromandi.timekar.domain.usecase.GetPendingTaskUseCase
 import ir.arminniromandi.timekar.domain.usecase.GetSettingsUseCase
 import ir.arminniromandi.timekar.domain.usecase.GetTasksForDateUseCase
 import ir.arminniromandi.timekar.domain.usecase.GetTasksUseCase
@@ -16,6 +18,7 @@ import ir.arminniromandi.timekar.domain.usecase.ToggleSubtaskUseCase
 import ir.arminniromandi.timekar.domain.usecase.ToggleTaskCompleteUseCase
 import ir.arminniromandi.timekar.domain.usecase.UpdateSettingsUseCase
 import ir.arminniromandi.timekar.domain.usecase.UpdateTaskUseCase
+import ir.arminniromandi.timekar.framework.alarm.AndroidTaskReminderScheduler
 
 interface AppContainer {
     val database: AppDatabase
@@ -32,7 +35,11 @@ interface AppContainer {
     val getSettingsUseCase: GetSettingsUseCase
     val updateSettingsUseCase: UpdateSettingsUseCase
 
+    val getPendingTask: GetPendingTaskUseCase
+
     val voiceManager: VoiceToTextManager
+
+    val taskReminderScheduler : TaskReminderScheduler
 
 }
 
@@ -59,19 +66,19 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val addTaskUseCase: AddTaskUseCase by lazy {
-        AddTaskUseCase(taskRepository)
+        AddTaskUseCase(taskRepository ,taskReminderScheduler)
     }
 
     override val updateTaskUseCase: UpdateTaskUseCase by lazy {
-        UpdateTaskUseCase(taskRepository)
+        UpdateTaskUseCase(taskRepository,taskReminderScheduler)
     }
 
     override val deleteTaskUseCase: DeleteTaskUseCase by lazy {
-        DeleteTaskUseCase(taskRepository)
+        DeleteTaskUseCase(taskRepository,taskReminderScheduler)
     }
 
     override val toggleTaskCompleteUseCase: ToggleTaskCompleteUseCase by lazy {
-        ToggleTaskCompleteUseCase(taskRepository)
+        ToggleTaskCompleteUseCase(taskRepository,taskReminderScheduler)
     }
 
     override val toggleSubtaskUseCase: ToggleSubtaskUseCase by lazy {
@@ -85,7 +92,14 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     override val updateSettingsUseCase: UpdateSettingsUseCase by lazy {
         UpdateSettingsUseCase(settingsRepository)
     }
+    override val getPendingTask: GetPendingTaskUseCase by lazy {
+        GetPendingTaskUseCase(taskRepository)
+    }
+
     override val voiceManager: VoiceToTextManager by lazy {
         VoiceToTextManager(context)
+    }
+    override val taskReminderScheduler: TaskReminderScheduler by lazy {
+        AndroidTaskReminderScheduler(context)
     }
 }
