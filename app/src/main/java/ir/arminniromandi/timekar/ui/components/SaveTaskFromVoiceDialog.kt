@@ -61,7 +61,9 @@ import ir.arminniromandi.timekar.ui.strings.AppStrings
 fun SaveTaskFromVoiceDialog(
     onDismissRequest: () -> Unit,
     spokenText: String = "",
-    strings : AppStrings ,
+    strings: AppStrings,
+    onPauseListening: () -> Unit,
+    onResumeListening: () -> Unit,
     onListeningStateChanged: ((Boolean) -> Unit)? = null
 ) {
 
@@ -122,7 +124,15 @@ fun SaveTaskFromVoiceDialog(
                 // دکمه میکروفون با انیمیشن پالس
                 VoiceButton(
                     isActive = isListening,
-                    onClick = { updateListening(!isListening) }
+                    onClick = {
+                        if (isListening) {
+                            onPauseListening
+                            updateListening(false)
+                        }else{
+                            onResumeListening
+                            updateListening(true)
+                        }
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -150,6 +160,7 @@ fun SaveTaskFromVoiceDialog(
                                     modifier = Modifier.padding(horizontal = 8.dp)
                                 )
                             }
+
                             listening -> {
                                 Text(
                                     text = strings.listening,
@@ -158,9 +169,10 @@ fun SaveTaskFromVoiceDialog(
                                     fontWeight = FontWeight.Medium
                                 )
                             }
+
                             else -> {
                                 Text(
-                                    text =strings.recordingPaused,
+                                    text = strings.recordingPaused,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                     textAlign = TextAlign.Center

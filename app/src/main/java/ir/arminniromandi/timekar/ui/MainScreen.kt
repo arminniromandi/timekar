@@ -10,8 +10,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ir.arminniromandi.timekar.di.AppContainer
@@ -72,6 +74,7 @@ fun MainScreen(
     )
     val voiceState by voiceViewModel.uiState.collectAsStateWithLifecycle()
 
+
     ChronosTheme(settings = settings) {
         var currentTab by remember { mutableStateOf(NavTab.TIMELINE) }
 
@@ -104,19 +107,26 @@ fun MainScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
             ) {
                 if (showVoiceDialog) {
+
                     // با باز شدن دیالوگ، گوش دادن شروع بشه
-                    LaunchedEffect(Unit) { voiceViewModel.startListening() }
+                    LaunchedEffect(Unit) {
+                        voiceViewModel.getLang(strings.language)
+                        voiceViewModel.onRecordClick()
+                    }
 
                     SaveTaskFromVoiceDialog(
                         strings = strings,
-                        spokenText = voiceState.spokenText,
+                        spokenText = voiceState.titleText,
                         onDismissRequest = {
-                            voiceViewModel.stopListening()
+                            voiceViewModel.onStopClick()
                             showVoiceDialog = false
-                        }
+                        },
+                        onPauseListening = {voiceViewModel.onPauseClick()},
+                        onResumeListening = {voiceViewModel.onResumeClick()}
                     )
                 }
                 when (currentTab) {

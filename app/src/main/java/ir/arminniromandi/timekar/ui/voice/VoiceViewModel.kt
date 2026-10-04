@@ -5,67 +5,84 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import ir.arminniromandi.timekar.data.voice.VoiceRecognitionState
 import ir.arminniromandi.timekar.data.voice.VoiceToTextManager
+import ir.arminniromandi.timekar.domain.AppLanguage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class VoiceUiState(
-    val isListening: Boolean = false,
-    val spokenText: String = "",
-    val errorMessage: String? = null
+
+// وضعیت کلی صفحه
+data class TaskScreenUiState(
+    val titleText: String = "",
+    val voiceStatus: VoiceRecognitionState = VoiceRecognitionState.Idle,
+    val isMicrophoneActive: Boolean = false
 )
 
-open class VoiceTaskViewModel(
+class VoiceTaskViewModel(
     private val voiceManager: VoiceToTextManager
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(VoiceUiState())
-    val uiState = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(TaskScreenUiState())
+    val uiState: StateFlow<TaskScreenUiState> = _uiState.asStateFlow()
 
-    private var recognitionJob: Job? = null
+    private val _langCode = MutableStateFlow("fa-IR")
+    val langCode = _langCode.asStateFlow()
 
-    fun startListening() {
-        recognitionJob?.cancel()
-        recognitionJob = viewModelScope.launch {
-            voiceManager.startListening().collect { state ->
+
+    init {
+        observeVoiceState()
+    }
+
+
+    private fun observeVoiceState() {
+        viewModelScope.launch {
+            voiceManager.state.collect { state ->
                 when (state) {
-                    is VoiceRecognitionState.Listening -> {
-                        _uiState.update { it.copy(isListening = true, errorMessage = null) }
-                    }
-                    is VoiceRecognitionState.Idle -> {
-                        _uiState.update { it.copy(isListening = false) }
-                    }
                     is VoiceRecognitionState.SpokenText -> {
-                        _uiState.update { it.copy(spokenText = state.text) }
-                    }
-                    is VoiceRecognitionState.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                isListening = false,
-                                errorMessage = state.message
+                        _uiState.update { current ->
+                            current.copy(
+                                titleText = state.fullText,
+                                voiceStatus = state,
+                                isMicrophoneActive = true
                             )
                         }
+                    }
+
+                    is VoiceRecognitionState.Listening -> {
+                        _uiState.update { it.copy(voiceStatus = state, isMicrophoneActive = true) }
+                    }
+
+                    is VoiceRecognitionState.Paused -> {
+                        _uiState.update { it.copy(voiceStatus = state, isMicrophoneActive = false) }
+                    }
+
+                    is VoiceRecognitionState.Idle, is VoiceRecognitionState.Error -> {
+                        _uiState.update { it.copy(voiceStatus = state, isMicrophoneActive = false) }
                     }
                 }
             }
         }
     }
 
-    fun stopListening() {
-        voiceManager.stopListening()
-        recognitionJob?.cancel()
-        _uiState.update { it.copy(isListening = false) }
+    fun getLang(lang: AppLanguage) {
+        when (lang) {
+            AppLanguage.PERSIAN -> _langCode.value = "fa-IR"
+            AppLanguage.ENGLISH -> _langCode.value = "en-US"
+        }
     }
+
+    fun onRecordClick() = voiceManager.startListening(langCode.value)
+    fun onPauseClick() = voiceManager.pauseListening()
+    fun onResumeClick() = voiceManager.resumeListening(langCode.value)
+    fun onStopClick() = voiceManager.stopListening()
 
     override fun onCleared() {
         super.onCleared()
-        voiceManager.stopListening()
+        voiceManager.destroy()
     }
-
-
-
 
     companion object {
         fun provideFactory(
@@ -74,11 +91,10 @@ open class VoiceTaskViewModel(
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 return VoiceTaskViewModel(
-                   voiceManager = voiceManager
+                    voiceManager = voiceManager
                 ) as T
             }
         }
+
     }
-
-
 }
