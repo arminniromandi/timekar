@@ -166,6 +166,11 @@ class VoiceToTextManager(private val context: Context) {
         recognizer?.stopListening()
         recognizer?.cancel()
         _state.value = VoiceRecognitionState.Idle
+        _state.value = VoiceRecognitionState.SpokenText(
+            fullText = "",
+            currentPart = "",
+            isFinal = false
+        )
     }
 
     fun destroy() {

@@ -29,6 +29,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material3.Button
@@ -40,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -55,27 +58,46 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import ir.arminniromandi.timekar.data.voice.VoiceRecognitionState
 import ir.arminniromandi.timekar.ui.strings.AppStrings
 
 @Composable
 fun SaveTaskFromVoiceDialog(
     onDismissRequest: () -> Unit,
+    voiceState: VoiceRecognitionState,
     spokenText: String = "",
     strings: AppStrings,
     onPauseListening: () -> Unit,
     onResumeListening: () -> Unit,
-    onListeningStateChanged: ((Boolean) -> Unit)? = null
+    onStopListening: () -> Unit,
+    onSaveVoiceText: (String) -> Unit
 ) {
-
     var isListening by rememberSaveable { mutableStateOf(true) }
 
-    fun updateListening(newState: Boolean) {
-        isListening = newState
-        onListeningStateChanged?.invoke(newState)
+    // وقتی ویس به حالت Idle یا Error میرود (یعنی تمام شد)، دیالوگ را ببند
+    LaunchedEffect(voiceState) {
+        when (voiceState) {
+            is VoiceRecognitionState.Idle -> {
+                // اگر متنی وجود داشت، آن را ذخیره کن
+                if (spokenText.isNotBlank()) {
+                    onSaveVoiceText(spokenText)
+                }
+            }
+            is VoiceRecognitionState.Listening -> {
+                isListening = true
+            }
+            is VoiceRecognitionState.Paused -> {
+                isListening = false
+            }
+            else -> {}
+        }
     }
 
     Dialog(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = {
+            onStopListening()
+            onDismissRequest()
+        },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Card(
@@ -126,11 +148,9 @@ fun SaveTaskFromVoiceDialog(
                     isActive = isListening,
                     onClick = {
                         if (isListening) {
-                            onPauseListening
-                            updateListening(false)
-                        }else{
-                            onResumeListening
-                            updateListening(true)
+                            onPauseListening()
+                        } else {
+                            onResumeListening()
                         }
                     }
                 )
@@ -184,25 +204,36 @@ fun SaveTaskFromVoiceDialog(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // دکمه‌های اکشن (توقف/ادامه و بستن)
+                // دکمه‌های اکشن
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // دکمه بستن / لغو
                     OutlinedButton(
-                        onClick = onDismissRequest,
+                        onClick = {
+                            onStopListening()
+                            onDismissRequest()
+                        },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.size(4.dp))
                         Text(strings.close)
                     }
 
+                    // دکمه توقف/ادامه
                     val buttonColor by animateColorAsState(
                         targetValue = if (isListening) {
                             MaterialTheme.colorScheme.errorContainer
                         } else {
-                            MaterialTheme.colorScheme.primary
+                            MaterialTheme.colorScheme.secondaryContainer
                         },
                         label = "btn_color_anim"
                     )
@@ -211,13 +242,19 @@ fun SaveTaskFromVoiceDialog(
                         targetValue = if (isListening) {
                             MaterialTheme.colorScheme.onErrorContainer
                         } else {
-                            MaterialTheme.colorScheme.onPrimary
+                            MaterialTheme.colorScheme.onSecondaryContainer
                         },
                         label = "btn_content_color_anim"
                     )
 
                     Button(
-                        onClick = { updateListening(!isListening) },
+                        onClick = {
+                            if (isListening) {
+                                onPauseListening()
+                            } else {
+                                onResumeListening()
+                            }
+                        },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -226,6 +263,31 @@ fun SaveTaskFromVoiceDialog(
                         )
                     ) {
                         Text(if (isListening) strings.pause else strings.resume)
+                    }
+
+                    // دکمه ذخیره و بستن
+                    Button(
+                        onClick = {
+                            onStopListening()
+                            if (spokenText.isNotBlank()) {
+                                onSaveVoiceText(spokenText)
+                            }
+                            onDismissRequest()
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = spokenText.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.size(4.dp))
+                        Text(strings.save)
                     }
                 }
             }

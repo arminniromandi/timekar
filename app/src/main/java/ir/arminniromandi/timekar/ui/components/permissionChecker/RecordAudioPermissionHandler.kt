@@ -6,31 +6,20 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 
-class RecordAudioPermission(
-    private val checkAndRequest: () -> Unit
-) {
-    fun checkAndRequestAudioPermission() {
-        checkAndRequest()
-    }
-}
-
 @Composable
-fun rememberRecordAudioPermission(
-    onGranted: () -> Unit
-): RecordAudioPermission {
-
+fun RecordAudioPermissionChecker(
+    onPermissionGranted: () -> Unit
+): () -> Unit {
     val context = LocalContext.current
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-
         if (isGranted) {
-            onGranted()
+            onPermissionGranted()
         } else {
             Toast.makeText(
                 context,
@@ -40,22 +29,16 @@ fun rememberRecordAudioPermission(
         }
     }
 
-    return remember(context, launcher, onGranted) {
+    return {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
 
-        RecordAudioPermission {
-
-            val hasPermission = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
-
-            if (hasPermission) {
-                onGranted()
-            } else {
-                launcher.launch(
-                    Manifest.permission.RECORD_AUDIO
-                )
-            }
+        if (hasPermission) {
+            onPermissionGranted()
+        } else {
+            launcher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 }

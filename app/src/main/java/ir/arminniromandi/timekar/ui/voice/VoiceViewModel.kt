@@ -77,7 +77,16 @@ class VoiceTaskViewModel(
     fun onRecordClick() = voiceManager.startListening(langCode.value)
     fun onPauseClick() = voiceManager.pauseListening()
     fun onResumeClick() = voiceManager.resumeListening(langCode.value)
-    fun onStopClick() = voiceManager.stopListening()
+    fun onStopClick() {
+        voiceManager.stopListening()
+        clearAndDestory()
+    }
+
+    fun clearAndDestory(){
+        _uiState.value.copy(
+            titleText = ""
+        )
+    }
 
     override fun onCleared() {
         super.onCleared()

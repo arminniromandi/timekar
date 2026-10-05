@@ -25,7 +25,8 @@ import kotlinx.coroutines.launch
 data class SharedTasksUiState(
     val selectedEpochDay: Long = DateHelper.todayEpochDay(),
     val isNewTaskSheetVisible: Boolean = false,
-    val taskToEdit: TaskItem? = null
+    val taskToEdit: TaskItem? = null,
+    val voiceInputText: String? = null  // متن دریافتی از ویس
 )
 
 class SharedTasksViewModel(
@@ -91,6 +92,21 @@ class SharedTasksViewModel(
             isNewTaskSheetVisible = false,
             taskToEdit = null
         )
+    }
+
+    /**
+     * دریافت متن از ویس و ذخیره در state
+     * این متن را می‌توانید در هر جایی از برنامه استفاده کنید
+     */
+    fun receiveVoiceText(text: String) {
+        _uiState.value = _uiState.value.copy(voiceInputText = text)
+    }
+
+    /**
+     * پاک کردن متن ویس بعد از استفاده
+     */
+    fun clearVoiceText() {
+        _uiState.value = _uiState.value.copy(voiceInputText = null)
     }
 
     fun saveTask(task: TaskItem) {
