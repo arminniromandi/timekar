@@ -30,6 +30,17 @@ interface TaskDao {
 """)
     suspend fun getPendingTasksFromDate(currentEpochDay: Long): List<TaskEntity>
 
+    @Query(
+        """
+        SELECT *
+        FROM tasks
+        WHERE isCompleted = 0
+          AND reminderMin >= 0
+          AND startTimeMinute >= 0
+        """
+    )
+    suspend fun getTasksWithReminder(): List<TaskEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTask(task: TaskEntity): Long
 

@@ -8,6 +8,7 @@ import ir.arminniromandi.timekar.domain.AppLanguage
 import ir.arminniromandi.timekar.domain.StartDay
 import ir.arminniromandi.timekar.domain.ThemeMode
 import ir.arminniromandi.timekar.domain.UserSettings
+import ir.arminniromandi.timekar.domain.alarm.ReminderManager
 import ir.arminniromandi.timekar.domain.usecase.GetSettingsUseCase
 import ir.arminniromandi.timekar.domain.usecase.UpdateSettingsUseCase
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,7 +18,8 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val getSettingsUseCase: GetSettingsUseCase,
-    private val updateSettingsUseCase: UpdateSettingsUseCase
+    private val updateSettingsUseCase: UpdateSettingsUseCase,
+    private val reminderManager: ReminderManager
 ) : ViewModel() {
 
     val settings: StateFlow<UserSettings> = getSettingsUseCase().stateIn(
@@ -31,7 +33,11 @@ class SettingsViewModel(
             updateSettingsUseCase { current ->
                 current.copy(
                     language = language,
-                    userName = if (language == AppLanguage.PERSIAN) "آرش محمدی" else "Arash Mohammadi"
+                    userName = if (language == AppLanguage.PERSIAN) {
+                        "آرش محمدی"
+                    } else {
+                        "Arash Mohammadi"
+                    }
                 )
             }
         }
@@ -39,43 +45,71 @@ class SettingsViewModel(
 
     fun setThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
-            updateSettingsUseCase { it.copy(themeMode = themeMode) }
+            updateSettingsUseCase {
+                it.copy(themeMode = themeMode)
+            }
         }
     }
 
     fun setAccentColor(accentColor: AccentColor) {
         viewModelScope.launch {
-            updateSettingsUseCase { it.copy(accentColor = accentColor) }
+            updateSettingsUseCase {
+                it.copy(accentColor = accentColor)
+            }
         }
     }
 
     fun setStartDay(startDay: StartDay) {
         viewModelScope.launch {
-            updateSettingsUseCase { it.copy(startDay = startDay) }
+            updateSettingsUseCase {
+                it.copy(startDay = startDay)
+            }
         }
     }
 
     fun toggleTaskReminders() {
         viewModelScope.launch {
-            updateSettingsUseCase { it.copy(taskRemindersEnabled = !it.taskRemindersEnabled) }
+            val enabled =
+                !settings.value.taskRemindersEnabled
+
+            updateSettingsUseCase {
+                it.copy(
+                    taskRemindersEnabled = enabled
+                )
+            }
+
+            reminderManager.onReminderSettingChanged(enabled)
         }
     }
 
     fun toggleDailyBriefing() {
         viewModelScope.launch {
-            updateSettingsUseCase { it.copy(dailyBriefingEnabled = !it.dailyBriefingEnabled) }
+            updateSettingsUseCase {
+                it.copy(
+                    dailyBriefingEnabled =
+                        !it.dailyBriefingEnabled
+                )
+            }
         }
     }
 
     companion object {
         fun provideFactory(
             getSettingsUseCase: GetSettingsUseCase,
-            updateSettingsUseCase: UpdateSettingsUseCase
-        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return SettingsViewModel(getSettingsUseCase, updateSettingsUseCase) as T
+            updateSettingsUseCase: UpdateSettingsUseCase,
+            reminderManager: ReminderManager
+        ): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(
+                    modelClass: Class<T>
+                ): T {
+                    return SettingsViewModel(
+                        getSettingsUseCase,
+                        updateSettingsUseCase,
+                        reminderManager
+                    ) as T
+                }
             }
-        }
     }
 }

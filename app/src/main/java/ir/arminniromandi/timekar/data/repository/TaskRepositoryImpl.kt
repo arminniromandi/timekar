@@ -31,6 +31,12 @@ class TaskRepositoryImpl(
         return taskDao.getPendingTasksFromDate(epochDay).map { it.toDomain() }
     }
 
+    override suspend fun getTasksWithReminder(): List<TaskItem> {
+        return taskDao
+            .getTasksWithReminder()
+            .map { it.toDomain() }
+    }
+
     override suspend fun insertTask(task: TaskItem): Long {
         return taskDao.insertTask(TaskEntity.Companion.fromDomain(task))
     }

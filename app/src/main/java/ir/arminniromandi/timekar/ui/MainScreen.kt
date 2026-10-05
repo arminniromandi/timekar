@@ -46,7 +46,8 @@ fun MainScreen(
     val settingsViewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModel.provideFactory(
             container.getSettingsUseCase,
-            container.updateSettingsUseCase
+            container.updateSettingsUseCase,
+            container.reminderManager
         )
     )
     val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
