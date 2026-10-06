@@ -89,6 +89,7 @@ fun SaveTaskFromVoiceDialog(
             is VoiceRecognitionState.Paused -> {
                 isListening = false
             }
+
             else -> {}
         }
     }

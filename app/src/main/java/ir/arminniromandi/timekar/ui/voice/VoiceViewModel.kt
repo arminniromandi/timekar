@@ -18,7 +18,8 @@ import kotlinx.coroutines.launch
 data class TaskScreenUiState(
     val titleText: String = "",
     val voiceStatus: VoiceRecognitionState = VoiceRecognitionState.Idle,
-    val isMicrophoneActive: Boolean = false
+    val isMicrophoneActive: Boolean = false,
+    val errorM :String =""
 )
 
 class VoiceTaskViewModel(
@@ -47,6 +48,13 @@ class VoiceTaskViewModel(
                                 titleText = state.fullText,
                                 voiceStatus = state,
                                 isMicrophoneActive = true
+                            )
+                        }
+                    }
+                    is VoiceRecognitionState.Error ->{
+                        _uiState.update {
+                            it.copy(
+                                errorM = state.message
                             )
                         }
                     }

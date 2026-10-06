@@ -76,12 +76,6 @@ fun MainScreen(
     // Voice Dialog State
     var showVoiceDialog by remember { mutableStateOf(false) }
 
-    //test
-    LaunchedEffect(showVoiceDialog) {
-        Log.i("TAG", "MainScreen:$showVoiceDialog ")
-    }
-
-
     // Permission Handlers
     AlarmPermissionChecker(context)
     val checkAndRequestAudioPermission = RecordAudioPermissionChecker(

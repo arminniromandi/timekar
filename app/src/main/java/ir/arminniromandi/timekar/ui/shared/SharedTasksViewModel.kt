@@ -1,5 +1,6 @@
 package ir.arminniromandi.timekar.ui.shared
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -97,9 +98,11 @@ class SharedTasksViewModel(
     /**
      * دریافت متن از ویس و ذخیره در state
      * این متن را می‌توانید در هر جایی از برنامه استفاده کنید
+     * todo: زمانی متن فرا رسد میتوان به api ارسال کرد
      */
     fun receiveVoiceText(text: String) {
         _uiState.value = _uiState.value.copy(voiceInputText = text)
+        Log.i("test" , text)
     }
 
     /**
@@ -107,6 +110,7 @@ class SharedTasksViewModel(
      */
     fun clearVoiceText() {
         _uiState.value = _uiState.value.copy(voiceInputText = null)
+
     }
 
     fun saveTask(task: TaskItem) {

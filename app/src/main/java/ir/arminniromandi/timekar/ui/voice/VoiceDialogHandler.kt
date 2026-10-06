@@ -1,8 +1,10 @@
 package ir.arminniromandi.timekar.ui.voice
 
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.arminniromandi.timekar.ui.components.SaveTaskFromVoiceDialog
 import ir.arminniromandi.timekar.ui.shared.SharedTasksViewModel
@@ -31,7 +33,7 @@ fun VoiceDialogHandler(
             onResumeListening = { voiceViewModel.onResumeClick() },
             onStopListening = { voiceViewModel.onStopClick() },
             onSaveVoiceText = { text ->
-                voiceViewModel.onStopClick()
+//                voiceViewModel.onStopClick()
                 sharedViewModel.receiveVoiceText(text)
             }
         )
