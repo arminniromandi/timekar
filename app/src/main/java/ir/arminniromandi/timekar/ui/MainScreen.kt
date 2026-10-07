@@ -63,7 +63,8 @@ fun MainScreen(
             container.updateTaskUseCase,
             container.deleteTaskUseCase,
             container.toggleTaskCompleteUseCase,
-            container.toggleSubtaskUseCase
+            container.toggleSubtaskUseCase,
+            container.aiTaskRepository
         )
     )
 

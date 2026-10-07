@@ -22,6 +22,7 @@ fun VoiceEventHandler(
 ) {
     val sharedUiState by sharedViewModel.uiState.collectAsStateWithLifecycle()
 
+
     // شروع ضبط صدا هنگام باز شدن دیالوگ
     LaunchedEffect(showVoiceDialog) {
         if (showVoiceDialog) {
@@ -38,7 +39,8 @@ fun VoiceEventHandler(
                 "متن دریافت شده: $text",
                 Toast.LENGTH_LONG
             ).show()
-            
+
+            sharedViewModel.sendAiRequest(text)
             // اینجا می‌توانید هر کاری با متن انجام دهید
             // مثلاً باز کردن صفحه ایجاد تسک با این متن
             // sharedViewModel.openNewTaskSheet(taskWithVoiceText)

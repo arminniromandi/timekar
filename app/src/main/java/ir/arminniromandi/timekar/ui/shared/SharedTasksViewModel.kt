@@ -1,9 +1,10 @@
 package ir.arminniromandi.timekar.ui.shared
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import ir.arminniromandi.timekar.data.remote.NetworkResult
+import ir.arminniromandi.timekar.data.repository.AiTaskRepository
 import ir.arminniromandi.timekar.domain.model.TaskItem
 import ir.arminniromandi.timekar.domain.usecase.AddTaskUseCase
 import ir.arminniromandi.timekar.domain.usecase.DeleteTaskUseCase
@@ -13,6 +14,8 @@ import ir.arminniromandi.timekar.domain.usecase.ToggleSubtaskUseCase
 import ir.arminniromandi.timekar.domain.usecase.ToggleTaskCompleteUseCase
 import ir.arminniromandi.timekar.domain.usecase.UpdateTaskUseCase
 import ir.arminniromandi.timekar.util.DateHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +33,7 @@ data class SharedTasksUiState(
     val voiceInputText: String? = null  // متن دریافتی از ویس
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SharedTasksViewModel(
     private val getTasksUseCase: GetTasksUseCase,
     private val getTasksForDateUseCase: GetTasksForDateUseCase,
@@ -37,11 +41,18 @@ class SharedTasksViewModel(
     private val updateTaskUseCase: UpdateTaskUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
     private val toggleTaskCompleteUseCase: ToggleTaskCompleteUseCase,
-    private val toggleSubtaskUseCase: ToggleSubtaskUseCase
+    private val toggleSubtaskUseCase: ToggleSubtaskUseCase,
+    private val aiTaskRepository: AiTaskRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SharedTasksUiState())
     val uiState: StateFlow<SharedTasksUiState> = _uiState.asStateFlow()
+
+    private val _aiTaskResult =
+        MutableStateFlow<NetworkResult<TaskItem>?>(null)
+
+    val aiTaskResult: StateFlow<NetworkResult<TaskItem>?> =
+        _aiTaskResult.asStateFlow()
 
     /** روز انتخابی، به صورت یک جریان مستقل از بقیه‌ی فیلدها */
     val selectedEpochDayFlow: StateFlow<Long> = _uiState
@@ -98,11 +109,9 @@ class SharedTasksViewModel(
     /**
      * دریافت متن از ویس و ذخیره در state
      * این متن را می‌توانید در هر جایی از برنامه استفاده کنید
-     * todo: زمانی متن فرا رسد میتوان به api ارسال کرد
      */
     fun receiveVoiceText(text: String) {
         _uiState.value = _uiState.value.copy(voiceInputText = text)
-        Log.i("test" , text)
     }
 
     /**
@@ -110,7 +119,6 @@ class SharedTasksViewModel(
      */
     fun clearVoiceText() {
         _uiState.value = _uiState.value.copy(voiceInputText = null)
-
     }
 
     fun saveTask(task: TaskItem) {
@@ -128,6 +136,33 @@ class SharedTasksViewModel(
         viewModelScope.launch {
             deleteTaskUseCase(taskId)
         }
+    }
+
+    /**
+     * ارسال درخواست به AI برای استخراج داده‌های Task از متن ویس.
+     * پس از موفقیت‌آمیز بودن، داده‌ها به عنوان پیش‌فرض در NewTaskSheet باز می‌شود
+     * تا کاربر بتواند آن را بررسی و به صورت دستی ذخیره کند.
+     */
+    fun sendAiRequest(text: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            aiTaskRepository.sendRequest(text).collect { result ->
+                _aiTaskResult.value = result
+                if (result is NetworkResult.Success) {
+                    // باز کردن NewTaskSheet با داده‌های استخراج شده توسط AI
+                    _uiState.value = _uiState.value.copy(
+                        isNewTaskSheetVisible = true,
+                        taskToEdit = result.data
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * ریست کردن نتیجه درخواست AI (مثلاً بعد از بستن دیالوگ یا شیت)
+     */
+    fun resetAiTaskResult() {
+        _aiTaskResult.value = null
     }
 
     fun toggleTaskComplete(taskId: Long) {
@@ -150,7 +185,8 @@ class SharedTasksViewModel(
             updateTaskUseCase: UpdateTaskUseCase,
             deleteTaskUseCase: DeleteTaskUseCase,
             toggleTaskCompleteUseCase: ToggleTaskCompleteUseCase,
-            toggleSubtaskUseCase: ToggleSubtaskUseCase
+            toggleSubtaskUseCase: ToggleSubtaskUseCase,
+            aiTaskRepository: AiTaskRepository
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -161,7 +197,8 @@ class SharedTasksViewModel(
                     updateTaskUseCase,
                     deleteTaskUseCase,
                     toggleTaskCompleteUseCase,
-                    toggleSubtaskUseCase
+                    toggleSubtaskUseCase,
+                    aiTaskRepository
                 ) as T
             }
         }
