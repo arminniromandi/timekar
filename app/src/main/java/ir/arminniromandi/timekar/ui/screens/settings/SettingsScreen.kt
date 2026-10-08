@@ -85,7 +85,8 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // User Profile Card
-            Surface(
+            //in next update
+            /*Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerLowest,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest),
@@ -152,7 +153,7 @@ fun SettingsScreen(
                         }
                     }
                 }
-            }
+            }*/
 
             // 1. GENERAL SECTION
             SettingsSectionHeader(title = strings.general)
@@ -356,7 +357,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 3. NOTIFICATIONS & REMINDERS SECTION
+            // 3. NOTIFICATIONS  SECTION
             SettingsSectionHeader(title = strings.notificationsAndReminders)
             Surface(
                 shape = RoundedCornerShape(12.dp),
@@ -395,101 +396,12 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainerHighest, thickness = 0.5.dp)
 
-                    // Daily Briefing
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = strings.dailyBriefing,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = strings.dailyBriefingDesc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                        Switch(
-                            checked = settings.dailyBriefingEnabled,
-                            onCheckedChange = { viewModel.toggleDailyBriefing() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                    }
+
                 }
             }
 
-            // 4. DATA & INTEGRATIONS SECTION
-            SettingsSectionHeader(title = strings.dataAndIntegrations)
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = strings.googleCalendarSync,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = strings.googleCalendarSyncDesc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainerHighest, thickness = 0.5.dp)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = strings.backupAndExport,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = strings.backupAndExportDesc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                }
-            }
-
-            // 5. ABOUT SECTION
+            // 4. ABOUT SECTION
             SettingsSectionHeader(title = strings.about)
             Surface(
                 shape = RoundedCornerShape(12.dp),
