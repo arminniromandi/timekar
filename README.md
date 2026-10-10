@@ -2,6 +2,8 @@
 
 **AI-assisted task management for Android**, built with Kotlin and Jetpack Compose.
 
+[![Download TimeKar](https://img.shields.io/badge/Download-TimeKar-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/arminniromandi/timekar/releases/download/v1.1/app-release.apk)
+
 TimeKar helps users organize tasks through timeline, list, and calendar views. It supports English and Persian (including RTL layout), voice input, AI-assisted task creation, and scheduled reminders.
 
 ![Kotlin](https://img.shields.io/badge/Kotlin-Android-7F52FF?logo=kotlin&logoColor=white)
