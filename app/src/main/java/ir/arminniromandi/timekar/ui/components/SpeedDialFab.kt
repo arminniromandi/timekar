@@ -147,7 +147,7 @@ private fun SpeedDialItem(
         // برچسب کنار دکمه
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+            color = MaterialTheme.colorScheme.surfaceVariant,
             shadowElevation = 2.dp,
             modifier = Modifier.clickable(onClick = onClick)
         ) {
