@@ -13,6 +13,7 @@ TimeKar helps users organize tasks through timeline, list, and calendar views. I
 
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Technology Stack](#technology-stack)
 - [Architecture](#architecture)
@@ -25,6 +26,19 @@ TimeKar helps users organize tasks through timeline, list, and calendar views. I
 - [Known Limitations](#known-limitations)
 - [Contributing](#contributing)
 
+
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/HomeScreen.png" width="30%" alt="Home Screen" />
+  <img src="screenshots/TasksScreen.png" width="30%" alt="Tasks Screen" />
+  <img src="screenshots/CalenderScreen.png" width="30%" alt="Calendar Screen" />
+</p>
+<p align="center">
+  <img src="screenshots/NewTaskBottomSheet.png" width="30%" alt="New Task Bottom Sheet" />
+  <img src="screenshots/NewTaskByVoiceDialog.png" width="30%" alt="New Task by Voice Dialog" />
+  <img src="screenshots/SettingScreen.png" width="30%" alt="Settings Screen" />
+</p>
 
 ## Features
 
