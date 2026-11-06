@@ -24,7 +24,7 @@ TimeKar helps users organize tasks through timeline, list, and calendar views. I
 - [Build Variants](#build-variants)
 - [Known Limitations](#known-limitations)
 - [Contributing](#contributing)
-- [License](#license)
+
 
 ## Features
 
@@ -151,19 +151,17 @@ Use the Gradle Wrapper included in the repository instead of installing a separa
 
 ### Clone the Repository
 
-Replace the example URL and directory below with the repository’s actual GitHub URL and folder name:
-
 ```bash
-git clone https://github.com/OWNER/REPOSITORY.git
-cd REPOSITORY
+git clone https://github.com/arminniromandi/timekar.git
+cd 
 ```
 
 ### Configure the AI API Key
 
-If the project’s Gradle configuration reads `API_KEY` from the root `local.properties`, add your key there alongside the SDK path:
+The Project has an `API_KEY`" for LLm-Api-Key  
+add Key to `local.properties`
 
 ```properties
-sdk.dir=/path/to/your/Android/Sdk
 API_KEY=your_openai_compatible_api_key
 ```
 
@@ -250,7 +248,3 @@ Contributions and bug reports are welcome.
 3. Make a focused change and add or update tests where appropriate.
 4. Follow the [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html).
 5. Open a pull request with a clear description of the change.
-
-## License
-
-This project is licensed under the Apache License 2.0. See the [`LICENSE`](LICENSE) file for details.
